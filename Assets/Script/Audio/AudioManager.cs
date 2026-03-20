@@ -19,8 +19,6 @@ public class AudioManager : MonoBehaviour
             DontDestroyOnLoad(gameObject);
             musicSource = GetComponent<AudioSource>();
 
-            Screen.SetResolution(540, 960, FullScreenMode.Windowed);
-
             // Đăng ký sự kiện khi đổi Scene
             SceneManager.sceneLoaded += OnSceneLoaded;
         }
