@@ -37,7 +37,6 @@ public class GameOverController : MonoBehaviour
     private int highScore = 0;
 
     [Header("Persistence")]
-    public string customSavePath = @"D:\ChuyenNganh7\PRU213\Game\Runner\save.txt"; // BẮT BUỘC
     private string savePath;
 
     private float startTime;
@@ -56,17 +55,9 @@ public class GameOverController : MonoBehaviour
     {
         if (Instance == null) Instance = this;
         else Destroy(gameObject);
-        // Khôi phục logic: Nếu là đường dẫn đầy đủ (bắt đầu bằng D:\ hoặc C:\...) thì lấy luôn
-        // Nếu chỉ là tên file thì mới kết hợp với persistentDataPath
-        if (Path.IsPathRooted(customSavePath))
-        {
-            savePath = customSavePath;
-        }
-        else
-        {
-            savePath = Path.Combine(Application.persistentDataPath, customSavePath);
-        }
 
+        // Sử dụng persistentDataPath để hoạt động trên mọi máy
+        savePath = Path.Combine(Application.persistentDataPath, "save.txt");
         Debug.Log("Dữ liệu sẽ được lưu tại: " + savePath);
     }
     void Start()
@@ -188,6 +179,12 @@ public class GameOverController : MonoBehaviour
             isGameOver = false;
             Time.timeScale = 1f;
             if (gameOverPanel != null) gameOverPanel.SetActive(false);
+
+            // Bật lại nhạc nền sau khi hồi sinh (Lỗi 1)
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.PlayRandomMusic();
+            }
 
             // Gọi Player bắt đầu trạng thái "Bóng ma" đi xuyên vật cản
             SwipeController player = FindFirstObjectByType<SwipeController>();

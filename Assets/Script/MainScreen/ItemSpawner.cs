@@ -69,7 +69,7 @@ public class ItemSpawner : MonoBehaviour
                     float spawnZ = startZ + i * coinSpacing;
                     Vector3 spawnPos = new Vector3(spawnX, spawnYOffset, spawnZ);
                     GameObject newItem = Instantiate(selectedPrefab, spawnPos, Quaternion.identity);
-                    Destroy(newItem, 15f);
+                    Destroy(newItem, 30f);
                 }
 
                 lastCoinBatchEndZ = startZ + (coinCount - 1) * coinSpacing;

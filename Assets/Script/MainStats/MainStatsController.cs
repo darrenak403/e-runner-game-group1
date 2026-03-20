@@ -11,7 +11,6 @@ public class MainStatsController : MonoBehaviour
     public TextMeshProUGUI statusText;
 
     [Header("Persistence")]
-    public string customSavePath = @"D:\ChuyenNganh7\PRU213\Game\Runner\save.txt";
     private string savePath;
 
     private Coroutine statusCoroutine;
@@ -30,14 +29,8 @@ public class MainStatsController : MonoBehaviour
     void Awake()
     {
         if (statusText != null) statusText.text = ""; // Xóa chữ lúc đầu
-        if (Path.IsPathRooted(customSavePath))
-        {
-            savePath = customSavePath;
-        }
-        else
-        {
-            savePath = Path.Combine(Application.persistentDataPath, customSavePath);
-        }
+        // Sử dụng persistentDataPath để hoạt động trên mọi máy
+        savePath = Path.Combine(Application.persistentDataPath, "save.txt");
     }
 
     void Start()
