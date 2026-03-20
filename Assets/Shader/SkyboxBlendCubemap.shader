@@ -1,13 +1,12 @@
-// Blend shader cho AllSkyFree Equirect (Panoramic) skybox
-// C# copy _Tex, _Tint, _Exposure, _Rotation từ cả 2 material vào đây
-// rồi animate _Blend từ 0->1 để crossfade A->B
+// Blend shader cho Skybox/Cubemap
+// C# copy _Tex từ cả 2 material rồi animate _Blend 0->1 để crossfade A->B
 
-Shader "Custom/SkyboxBlendPanoramic"
+Shader "Custom/SkyboxBlendCubemap"
 {
     Properties
     {
-        _TexA      ("Panoramic A", 2D) = "grey" {}
-        _TexB      ("Panoramic B", 2D) = "grey" {}
+        _TexA      ("Cubemap A", Cube) = "grey" {}
+        _TexB      ("Cubemap B", Cube) = "grey" {}
 
         _Blend     ("Blend (0=A, 1=B)", Range(0, 1)) = 0
 
@@ -33,37 +32,38 @@ Shader "Custom/SkyboxBlendPanoramic"
             #pragma fragment frag
             #include "UnityCG.cginc"
 
-            sampler2D _TexA, _TexB;
-            half  _Blend;
-            half4 _TintA, _TintB;
-            half  _ExposureA, _ExposureB;
-            float _RotationA, _RotationB;
+            samplerCUBE _TexA, _TexB;
+            half   _Blend;
+            half4  _TintA, _TintB;
+            half   _ExposureA, _ExposureB;
+            float  _RotationA, _RotationB;
 
             struct appdata { float4 vertex : POSITION; };
             struct v2f     { float4 pos : SV_POSITION; float3 dir : TEXCOORD0; };
+
+            float3 RotateY(float3 v, float deg)
+            {
+                float rad = deg * UNITY_PI / 180.0;
+                float s, c;
+                sincos(rad, s, c);
+                return float3(c * v.x + s * v.z, v.y, -s * v.x + c * v.z);
+            }
 
             v2f vert(appdata v)
             {
                 v2f o;
                 o.pos = UnityObjectToClipPos(v.vertex);
-                o.dir = v.vertex.xyz;
+                o.dir = v.vertex.xyz; // direction thô, rotate trong frag
                 return o;
-            }
-
-            float2 EquirectUV(float3 dir, float rotDeg)
-            {
-                float3 d   = normalize(dir);
-                float  phi = atan2(d.z, d.x) + rotDeg * UNITY_PI / 180.0;
-                float  theta = asin(clamp(d.y, -1.0, 1.0));
-                float  u   = frac(phi / (2.0 * UNITY_PI) + 0.5);
-                float  v   = theta / UNITY_PI + 0.5;
-                return float2(u, v);
             }
 
             fixed4 frag(v2f i) : SV_Target
             {
-                half4 colA = tex2D(_TexA, EquirectUV(i.dir, _RotationA));
-                half4 colB = tex2D(_TexB, EquirectUV(i.dir, _RotationB));
+                float3 dirA = normalize(RotateY(i.dir, _RotationA));
+                float3 dirB = normalize(RotateY(i.dir, _RotationB));
+
+                half4 colA = texCUBE(_TexA, dirA);
+                half4 colB = texCUBE(_TexB, dirB);
 
                 colA.rgb *= _TintA.rgb * unity_ColorSpaceDouble.rgb * _ExposureA;
                 colB.rgb *= _TintB.rgb * unity_ColorSpaceDouble.rgb * _ExposureB;

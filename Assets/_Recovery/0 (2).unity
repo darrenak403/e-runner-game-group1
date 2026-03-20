@@ -1732,29 +1732,24 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ItemSpawner
   items:
-  - itemName: 
-    prefab: {fileID: 6954758372675618198, guid: 6a301d09debaf1e4a8d3e2657cc44a96, type: 3}
-    spawnChance: 70
-  - itemName: 
-    prefab: {fileID: 8398601021662225049, guid: 8ee5e1b1ba562e140813f7eaa8f096cc, type: 3}
+  - prefab: {fileID: 6954758372675618198, guid: 6a301d09debaf1e4a8d3e2657cc44a96, type: 3}
+    spawnChance: 55
+  - prefab: {fileID: 8398601021662225049, guid: 8ee5e1b1ba562e140813f7eaa8f096cc, type: 3}
+    spawnChance: 8
+  - prefab: {fileID: 5225455176718880169, guid: 78f7059459c19f345910342079d533e8, type: 3}
     spawnChance: 10
-  - itemName: 
-    prefab: {fileID: 5225455176718880169, guid: 78f7059459c19f345910342079d533e8, type: 3}
-    spawnChance: 8
-  - itemName: 
-    prefab: {fileID: 621584630249350254, guid: 30c11cbab2272ad469bc5d089d75fa1a, type: 3}
-    spawnChance: 4
-  - itemName: 
-    prefab: {fileID: 8475833574052523601, guid: 45ef2b50b6b187a4b9c4b463fd68d55e, type: 3}
-    spawnChance: 8
+  - prefab: {fileID: 621584630249350254, guid: 30c11cbab2272ad469bc5d089d75fa1a, type: 3}
+    spawnChance: 5
+  - prefab: {fileID: 8475833574052523601, guid: 45ef2b50b6b187a4b9c4b463fd68d55e, type: 3}
+    spawnChance: 15
   player: {fileID: 1683418523}
   spawnInterval: 1
   spawnDistanceZ: 30
   laneDistance: 3.5
-  spawnYOffset: 0.8
   coinCount: 5
   coinSpacing: 3
   minBatchGap: 6
+  spawnYOffset: 0.8
 --- !u!1 &832575517
 GameObject:
   m_ObjectHideFlags: 0
@@ -2672,11 +2667,8 @@ MonoBehaviour:
   - {fileID: 2100000, guid: cdbb40e11399e4a17882ada20a1b896a, type: 2}
   - {fileID: 2100000, guid: fe4e130f9947345a2b213cb5038851a2, type: 2}
   - {fileID: 2100000, guid: 51b74d7bad397457d883c5940f7664d8, type: 2}
-  changeInterval: 30
-  transitionDuration: 5
-  blend6SidedShader: {fileID: 4800000, guid: 001cf3d8a9751e247aa3ce0445c4af9b, type: 3}
-  blendPanoramicShader: {fileID: 4800000, guid: ddb5551aa1f81d84385a060c098e6804, type: 3}
-  blendCubemapShader: {fileID: 4800000, guid: 4e8ab05a8207c9e4ca260e32b0731fec, type: 3}
+  changeInterval: 5
+  transitionDuration: 2
 --- !u!4 &1201709544
 Transform:
   m_ObjectHideFlags: 0

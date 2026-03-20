@@ -1,83 +1,56 @@
 using UnityEngine;
 
-/// <summary>
-/// Chuyển đổi Skybox mượt mà bằng custom blend shader.
-/// Hỗ trợ: Skybox/6 Sided  và  Skybox/Panoramic.
-/// Đặt script này lên bất kỳ GameObject nào trong scene MainScreen.
-/// </summary>
 public class SkyboxChanger : MonoBehaviour
 {
     [Header("Danh sách Skybox Material")]
     public Material[] skyboxMaterials;
 
     [Header("Thời gian chuyển đổi")]
-    public float changeInterval    = 30f;  // đổi bầu trời mỗi N giây
-    public float transitionDuration = 3f;  // thời gian fade (giây)
-    public bool  randomOrder        = false;
+    public float changeInterval     = 30f; // Giây giữa mỗi lần chuyển
+    public float transitionDuration = 2f;  // Giây để crossfade: A mờ dần, B sáng dần đồng thời
 
-    // ---- Runtime ----
-    private int      currentIndex = 0;
-    private float    timer        = 0f;
+    [Header("Blend Shaders (kéo từ Assets/Shader vào)")]
+    public Shader blend6SidedShader;    // Custom/SkyboxBlend6Sided
+    public Shader blendPanoramicShader; // Custom/SkyboxBlendPanoramic
+    public Shader blendCubemapShader;   // Custom/SkyboxBlendCubemap
+
+    private int   currentIndex    = 0;
+    private float timer           = 0f;
+
     private bool     isTransitioning = false;
     private float    transitionTimer = 0f;
-    private Material blendMat;   // material trung gian (persistent)
+    private Material fromMaterial;
+    private Material toMaterial;
+    private Material blendMaterial;
 
-    // ---- Shader & property caches ----
-    private bool isPanoramic; // true = Panoramic, false = 6 Sided
+    // Loại skybox đang blend
+    private enum SkyType { SixSided, Panoramic, Cubemap, Fallback }
+    private SkyType currentBlendType;
 
-    // 6-Sided property names (Unity standard)
-    private static readonly string[] Props6A = { "_FrontTexA","_BackTexA","_LeftTexA","_RightTexA","_UpTexA","_DownTexA" };
-    private static readonly string[] Props6B = { "_FrontTexB","_BackTexB","_LeftTexB","_RightTexB","_UpTexB","_DownTexB" };
-    private static readonly string[] Props6  = { "_FrontTex", "_BackTex", "_LeftTex", "_RightTex", "_UpTex", "_DownTex"  };
-
-    // -------------------------------------------------------
     void Start()
     {
         if (skyboxMaterials == null || skyboxMaterials.Length == 0)
         {
-            Debug.LogWarning("SkyboxChanger: Chưa gán Skybox Material nào!");
             enabled = false;
             return;
         }
 
-        // Tự detect loại shader của material đầu tiên
-        string shaderName = skyboxMaterials[0].shader.name;
-        isPanoramic = shaderName.Contains("Panoramic");
+        // Tự tìm shader nếu chưa kéo vào Inspector
+        if (blend6SidedShader    == null) blend6SidedShader    = Shader.Find("Custom/SkyboxBlend6Sided");
+        if (blendPanoramicShader == null) blendPanoramicShader = Shader.Find("Custom/SkyboxBlendPanoramic");
+        if (blendCubemapShader   == null) blendCubemapShader   = Shader.Find("Custom/SkyboxBlendCubemap");
 
-        // Tạo BLEND shader tương ứng
-        Shader blendShader = isPanoramic
-            ? Shader.Find("Custom/SkyboxBlendPanoramic")
-            : Shader.Find("Custom/SkyboxBlend6Sided");
-
-        if (blendShader == null)
-        {
-            Debug.LogError($"SkyboxChanger: Không tìm thấy shader blend! " +
-                           $"Hãy đảm bảo file .shader tồn tại trong project.");
-            enabled = false;
-            return;
-        }
-
-        blendMat = new Material(blendShader);
-        blendMat.hideFlags = HideFlags.HideAndDontSave;
-
-        // Load skybox đầu tiên vào slot A (blend = 0 → chỉ A hiện)
-        CopyToSlotA(skyboxMaterials[currentIndex]);
-        CopyToSlotB(skyboxMaterials[currentIndex]); // B = A để tránh grey
-        blendMat.SetFloat("_Blend", 0f);
-        CopyCommon(skyboxMaterials[currentIndex]);
-
-        RenderSettings.skybox = blendMat;
+        RenderSettings.skybox = skyboxMaterials[0];
         DynamicGI.UpdateEnvironment();
     }
 
-    // -------------------------------------------------------
     void Update()
     {
         if (skyboxMaterials.Length <= 1) return;
 
         if (isTransitioning)
         {
-            HandleTransition();
+            UpdateTransition();
             return;
         }
 
@@ -89,120 +62,158 @@ public class SkyboxChanger : MonoBehaviour
         }
     }
 
-    // -------------------------------------------------------
-    private void BeginTransition()
+    // ─── Bắt đầu crossfade ───────────────────────────────────────────────────
+
+    void BeginTransition()
     {
-        // Skybox hiện tại (A) đã ở slot A — chỉ cần load skybox mới vào slot B
-        int nextIndex = randomOrder
-            ? GetRandomOther(currentIndex)
-            : (currentIndex + 1) % skyboxMaterials.Length;
+        fromMaterial = skyboxMaterials[currentIndex];
+        currentIndex = (currentIndex + 1) % skyboxMaterials.Length;
+        toMaterial   = skyboxMaterials[currentIndex];
 
-        currentIndex = nextIndex;
-        CopyToSlotB(skyboxMaterials[currentIndex]);
-        CopyCommon(skyboxMaterials[currentIndex]);
+        if (blendMaterial != null) Destroy(blendMaterial);
 
-        blendMat.SetFloat("_Blend", 0f); // bắt đầu từ A
-        isTransitioning  = true;
+        currentBlendType = DetectType(fromMaterial);
+        Debug.Log($"[SkyboxChanger] BeginTransition: shader='{fromMaterial.shader.name}' → type={currentBlendType}");
+
+        blendMaterial = currentBlendType switch
+        {
+            SkyType.SixSided  => Create6SidedBlend(),
+            SkyType.Panoramic => CreatePanoramicBlend(),
+            SkyType.Cubemap   => CreateCubemapBlend(),
+            _                 => new Material(fromMaterial) // Fallback: Material.Lerp
+        };
+
+        RenderSettings.skybox = blendMaterial;
         transitionTimer  = 0f;
+        isTransitioning  = true;
     }
 
-    private void HandleTransition()
+    // ─── Cập nhật blend mỗi frame ────────────────────────────────────────────
+
+    void UpdateTransition()
     {
         transitionTimer += Time.deltaTime;
-        float t = Mathf.Clamp01(transitionTimer / transitionDuration);
+        float t      = Mathf.Clamp01(transitionTimer / transitionDuration);
+        float smooth = Mathf.SmoothStep(0f, 1f, t); // ease in-out
 
-        // Smooth easing (ease in-out)
-        float smooth = t * t * (3f - 2f * t);
-        blendMat.SetFloat("_Blend", smooth);
-        DynamicGI.UpdateEnvironment();
+        if (currentBlendType == SkyType.Fallback)
+            blendMaterial.Lerp(fromMaterial, toMaterial, smooth);
+        else
+            blendMaterial.SetFloat("_Blend", smooth); // shader tự blend A->B
 
         if (t >= 1f)
         {
-            // Chuyển B → A để sẵn sàng transition tiếp theo
-            // (không swap RenderSettings → không giật)
-            SwapBtoA();
-            blendMat.SetFloat("_Blend", 0f);
+            RenderSettings.skybox = toMaterial;
+            Destroy(blendMaterial);
+            blendMaterial   = null;
             isTransitioning = false;
+            DynamicGI.UpdateEnvironment();
         }
     }
 
-    // -------------------------------------------------------
-    // Helpers
+    // ─── Tạo blend material ───────────────────────────────────────────────────
 
-    private void CopyCommon(Material src)
+    Material Create6SidedBlend()
     {
-        if (src.HasProperty("_Tint"))     blendMat.SetColor("_Tint", src.GetColor("_Tint"));
-        if (src.HasProperty("_Exposure")) blendMat.SetFloat("_Exposure", src.GetFloat("_Exposure"));
-        if (src.HasProperty("_Rotation")) blendMat.SetFloat("_Rotation", src.GetFloat("_Rotation"));
+        var mat = new Material(blend6SidedShader);
+
+        // Copy 6 textures từ A (suffix A)
+        mat.SetTexture("_FrontTexA", fromMaterial.GetTexture("_FrontTex"));
+        mat.SetTexture("_BackTexA",  fromMaterial.GetTexture("_BackTex"));
+        mat.SetTexture("_LeftTexA",  fromMaterial.GetTexture("_LeftTex"));
+        mat.SetTexture("_RightTexA", fromMaterial.GetTexture("_RightTex"));
+        mat.SetTexture("_UpTexA",    fromMaterial.GetTexture("_UpTex"));
+        mat.SetTexture("_DownTexA",  fromMaterial.GetTexture("_DownTex"));
+
+        // Copy 6 textures từ B (suffix B)
+        mat.SetTexture("_FrontTexB", toMaterial.GetTexture("_FrontTex"));
+        mat.SetTexture("_BackTexB",  toMaterial.GetTexture("_BackTex"));
+        mat.SetTexture("_LeftTexB",  toMaterial.GetTexture("_LeftTex"));
+        mat.SetTexture("_RightTexB", toMaterial.GetTexture("_RightTex"));
+        mat.SetTexture("_UpTexB",    toMaterial.GetTexture("_UpTex"));
+        mat.SetTexture("_DownTexB",  toMaterial.GetTexture("_DownTex"));
+
+        mat.SetFloat("_Blend",    0f);
+        mat.SetFloat("_Exposure", fromMaterial.GetFloat("_Exposure"));
+        mat.SetFloat("_Rotation", fromMaterial.GetFloat("_Rotation"));
+        mat.SetColor("_Tint",     fromMaterial.GetColor("_Tint"));
+
+        return mat;
     }
 
-    private void CopyToSlotA(Material src)
+    Material CreatePanoramicBlend()
     {
-        if (isPanoramic)
-        {
-            if (src.HasProperty("_MainTex")) blendMat.SetTexture("_TexA", src.GetTexture("_MainTex"));
-        }
-        else
-        {
-            for (int i = 0; i < Props6.Length; i++)
-                if (src.HasProperty(Props6[i])) blendMat.SetTexture(Props6A[i], src.GetTexture(Props6[i]));
-        }
+        var mat = new Material(blendPanoramicShader);
+
+        mat.SetTexture("_TexA", fromMaterial.GetTexture("_Tex"));
+        mat.SetTexture("_TexB", toMaterial.GetTexture("_Tex"));
+
+        mat.SetFloat("_ExposureA", SafeGetFloat(fromMaterial, "_Exposure", 1f));
+        mat.SetFloat("_ExposureB", SafeGetFloat(toMaterial,   "_Exposure", 1f));
+        mat.SetFloat("_RotationA", SafeGetFloat(fromMaterial, "_Rotation", 0f));
+        mat.SetFloat("_RotationB", SafeGetFloat(toMaterial,   "_Rotation", 0f));
+        mat.SetColor("_TintA",     SafeGetColor(fromMaterial, "_Tint", new Color(.5f,.5f,.5f,.5f)));
+        mat.SetColor("_TintB",     SafeGetColor(toMaterial,   "_Tint", new Color(.5f,.5f,.5f,.5f)));
+
+        mat.SetFloat("_Blend", 0f);
+        return mat;
     }
 
-    private void CopyToSlotB(Material src)
+    // ─── Helpers ─────────────────────────────────────────────────────────────
+
+    Material CreateCubemapBlend()
     {
-        if (isPanoramic)
-        {
-            if (src.HasProperty("_MainTex")) blendMat.SetTexture("_TexB", src.GetTexture("_MainTex"));
-        }
-        else
-        {
-            for (int i = 0; i < Props6.Length; i++)
-                if (src.HasProperty(Props6[i])) blendMat.SetTexture(Props6B[i], src.GetTexture(Props6[i]));
-        }
+        var mat = new Material(blendCubemapShader);
+
+        mat.SetTexture("_TexA", fromMaterial.GetTexture("_Tex"));
+        mat.SetTexture("_TexB", toMaterial.GetTexture("_Tex"));
+
+        mat.SetFloat("_ExposureA", SafeGetFloat(fromMaterial, "_Exposure", 1f));
+        mat.SetFloat("_ExposureB", SafeGetFloat(toMaterial,   "_Exposure", 1f));
+        mat.SetFloat("_RotationA", SafeGetFloat(fromMaterial, "_Rotation", 0f));
+        mat.SetFloat("_RotationB", SafeGetFloat(toMaterial,   "_Rotation", 0f));
+        mat.SetColor("_TintA",     SafeGetColor(fromMaterial, "_Tint", new Color(.5f,.5f,.5f,.5f)));
+        mat.SetColor("_TintB",     SafeGetColor(toMaterial,   "_Tint", new Color(.5f,.5f,.5f,.5f)));
+
+        mat.SetFloat("_Blend", 0f);
+        return mat;
     }
 
-    /// <summary>Sau khi transition xong, copy slot B → slot A để chuẩn bị vòng tiếp.</summary>
-    private void SwapBtoA()
+    SkyType DetectType(Material mat)
     {
-        if (isPanoramic)
-        {
-            blendMat.SetTexture("_TexA", blendMat.GetTexture("_TexB"));
-        }
-        else
-        {
-            for (int i = 0; i < Props6.Length; i++)
-                blendMat.SetTexture(Props6A[i], blendMat.GetTexture(Props6B[i]));
-        }
+        string shaderName = mat.shader.name;
+        if (shaderName.Contains("6 Sided") && blend6SidedShader != null)
+            return SkyType.SixSided;
+        if ((shaderName.Contains("Panoramic") || shaderName.Contains("Equirect")) && blendPanoramicShader != null)
+            return SkyType.Panoramic;
+        if (shaderName.Contains("Cubemap") && blendCubemapShader != null)
+            return SkyType.Cubemap;
+        return SkyType.Fallback;
     }
 
-    private int GetRandomOther(int current)
-    {
-        if (skyboxMaterials.Length == 1) return 0;
-        int next;
-        do { next = Random.Range(0, skyboxMaterials.Length); }
-        while (next == current);
-        return next;
-    }
+    float SafeGetFloat(Material mat, string prop, float fallback)
+        => mat.HasProperty(prop) ? mat.GetFloat(prop) : fallback;
 
-    // -------------------------------------------------------
+    Color SafeGetColor(Material mat, string prop, Color fallback)
+        => mat.HasProperty(prop) ? mat.GetColor(prop) : fallback;
+
     void OnDestroy()
     {
-        if (blendMat != null) DestroyImmediate(blendMat);
+        if (blendMaterial != null) Destroy(blendMaterial);
     }
 
-    /// <summary>Gọi khi Game Over / Restart để reset về skybox đầu tiên.</summary>
+    /// <summary>Reset về skybox đầu (gọi khi Restart)</summary>
     public void ResetToFirst()
     {
+        if (blendMaterial != null) { Destroy(blendMaterial); blendMaterial = null; }
+        isTransitioning = false;
         currentIndex    = 0;
         timer           = 0f;
-        isTransitioning = false;
 
-        if (blendMat == null || skyboxMaterials.Length == 0) return;
-        CopyToSlotA(skyboxMaterials[0]);
-        CopyToSlotB(skyboxMaterials[0]);
-        blendMat.SetFloat("_Blend", 0f);
-        RenderSettings.skybox = blendMat;
-        DynamicGI.UpdateEnvironment();
+        if (skyboxMaterials.Length > 0)
+        {
+            RenderSettings.skybox = skyboxMaterials[0];
+            DynamicGI.UpdateEnvironment();
+        }
     }
 }

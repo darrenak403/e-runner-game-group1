@@ -2,95 +2,113 @@ using UnityEngine;
 
 public class ItemSpawner : MonoBehaviour
 {
+    // ─── Cấu trúc mỗi item ───────────────────────────────────────────────────
     [System.Serializable]
     public class SpawnableItem
     {
+        public string  itemName;
         public GameObject prefab;
-        [Range(0, 100)] public float spawnChance; // Tỉ lệ xuất hiện (0-100)
+
+        [Range(0, 100)]
+        [Tooltip("Tỉ lệ xuất hiện (%). Tổng tất cả item phải <= 100.\nPhần còn lại (100 - tổng) = không spawn gì.")]
+        public float spawnChance;
     }
 
-    [Header("Danh sách vật phẩm")]
+    // ─── Inspector ────────────────────────────────────────────────────────────
+    [Header("Danh sách vật phẩm  (tổng % <= 100)")]
     public SpawnableItem[] items;
+    // Coin: 55% | Heart: 8% | Shield: 8% | Potion: 10% | Thunder: 4%  → 15% không spawn
+
+    [Header("Cài đặt spawn")]
     public Transform player;
-
-    [Header("Cài đặt")]
-    public float spawnInterval = 1f;
+    public float spawnInterval  = 2f;   // giây / lần thử spawn
     public float spawnDistanceZ = 30f;
-    public float laneDistance = 3.5f;
+    public float laneDistance   = 3.5f;
+    public float spawnYOffset   = 0.8f;
 
-    [Header("Coin Settings")]
-    public int coinCount = 5;
+    [Header("Coin")]
+    public int   coinCount   = 5;
     public float coinSpacing = 3.0f;
     public float minBatchGap = 6.0f;
-    public float spawnYOffset = 0.8f;
 
+    // ─── Private ──────────────────────────────────────────────────────────────
     private float timer;
     private float lastCoinBatchEndZ = float.MinValue;
-    private float totalSpawnWeight;
 
-    void Start()
-    {
-        foreach (var item in items) totalSpawnWeight += item.spawnChance;
-    }
-
+    // ─── Update ───────────────────────────────────────────────────────────────
     void Update()
     {
         if (player == null) return;
         timer += Time.deltaTime;
         if (timer >= spawnInterval)
         {
-            SpawnRandomItem();
+            TrySpawn();
             timer = 0f;
         }
     }
 
-    void SpawnRandomItem()
+    // ─── Spawn logic ──────────────────────────────────────────────────────────
+
+    void TrySpawn()
     {
-        // 1. Chọn Lane ngẫu nhiên (-1, 0, 1)
-        int randomLane = Random.Range(-1, 2);
-        float spawnX = randomLane * laneDistance;
+        GameObject prefab = PickItem(); // null = không spawn (phần còn lại của 100%)
+        if (prefab == null) return;
 
-        // 2. Chọn loại vật phẩm
-        GameObject selectedPrefab = ChooseItem();
+        int   lane   = Random.Range(-1, 2);
+        float spawnX = lane * laneDistance;
 
-        if (selectedPrefab != null)
+        if (prefab.CompareTag("Coin"))
         {
-            bool isCoin = selectedPrefab.CompareTag("Coin");
-
-            if (isCoin)
-            {
-                float desiredStartZ = player.position.z + spawnDistanceZ;
-
-                // Đảm bảo batch mới không đè lên batch trước
-                float startZ = Mathf.Max(desiredStartZ, lastCoinBatchEndZ + minBatchGap);
-
-                for (int i = 0; i < coinCount; i++)
-                {
-                    float spawnZ = startZ + i * coinSpacing;
-                    Vector3 spawnPos = new Vector3(spawnX, spawnYOffset, spawnZ);
-                    GameObject newItem = Instantiate(selectedPrefab, spawnPos, Quaternion.identity);
-                    Destroy(newItem, 30f);
-                }
-
-                lastCoinBatchEndZ = startZ + (coinCount - 1) * coinSpacing;
-            }
-            else
-            {
-                Vector3 spawnPos = new Vector3(spawnX, spawnYOffset, player.position.z + spawnDistanceZ);
-                GameObject newItem = Instantiate(selectedPrefab, spawnPos, Quaternion.identity);
-                Destroy(newItem, 15f);
-            }
+            SpawnCoinBatch(prefab, spawnX);
+        }
+        else
+        {
+            Vector3 pos = new(spawnX, spawnYOffset, player.position.z + spawnDistanceZ);
+            Destroy(Instantiate(prefab, pos, Quaternion.identity), 15f);
         }
     }
-    GameObject ChooseItem()
-    {
-        float randomPoint = Random.value * totalSpawnWeight;
 
-        for (int i = 0; i < items.Length; i++)
+    void SpawnCoinBatch(GameObject coinPrefab, float spawnX)
+    {
+        float startZ = Mathf.Max(
+            player.position.z + spawnDistanceZ,
+            lastCoinBatchEndZ + minBatchGap
+        );
+
+        for (int i = 0; i < coinCount; i++)
         {
-            if (randomPoint < items[i].spawnChance) return items[i].prefab;
-            randomPoint -= items[i].spawnChance;
+            Vector3 pos = new(spawnX, spawnYOffset, startZ + i * coinSpacing);
+            Destroy(Instantiate(coinPrefab, pos, Quaternion.identity), 30f);
         }
-        return null;
+
+        lastCoinBatchEndZ = startZ + (coinCount - 1) * coinSpacing;
+    }
+
+    // ─── Chọn item theo % ─────────────────────────────────────────────────────
+    // Roll 0-100. Nếu roll nằm ngoài tổng % của tất cả item → trả về null (không spawn).
+    GameObject PickItem()
+    {
+        float roll   = Random.Range(0f, 100f);
+        float cursor = 0f;
+
+        foreach (var item in items)
+        {
+            cursor += item.spawnChance;
+            if (roll < cursor) return item.prefab;
+        }
+
+        return null; // phần còn lại = không spawn
+    }
+
+    // ─── Validate trong Editor ────────────────────────────────────────────────
+    void OnValidate()
+    {
+        float total = 0f;
+        foreach (var item in items) total += item.spawnChance;
+
+        if (total > 100f)
+            Debug.LogWarning($"[ItemSpawner] Tổng spawnChance = {total:F1}% > 100%! Hãy giảm xuống.");
+        else
+            Debug.Log($"[ItemSpawner] Tổng spawnChance = {total:F1}% | Không spawn = {100f - total:F1}%");
     }
 }
