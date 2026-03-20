@@ -158,7 +158,8 @@ public class GameOverController : MonoBehaviour
         isGameOver = true;
         Time.timeScale = 0f;
 
-        SaveGameData(); // Lưu xu và kiểm tra kỷ lục
+        // KHÔNG lưu ở đây — xu chỉ được lưu khi Chơi lại hoặc Thoát
+        // để số xu tích luỹ qua các lần hồi sinh không bị mất.
 
         if (gameOverPanel != null) gameOverPanel.SetActive(true);
 

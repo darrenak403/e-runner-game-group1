@@ -1,1 +1,1 @@
-{"totalCoins":97677,"highScore":1126,"storedHearts":1,"storedShields":0}
+{"totalCoins":97696,"highScore":1126,"storedHearts":0,"storedShields":0}
