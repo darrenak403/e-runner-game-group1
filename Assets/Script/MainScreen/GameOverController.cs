@@ -230,7 +230,7 @@ public class GameOverController : MonoBehaviour
                 GameData data = JsonUtility.FromJson<GameData>(json);
                 totalCoinsStored = data.totalCoins;
                 highScore = data.highScore;
-                
+
                 // Lấy số Tim và Khiên đã mua từ shop
                 heartCount = data.storedHearts;
                 shieldCount = data.storedShields;
@@ -263,7 +263,7 @@ public class GameOverController : MonoBehaviour
             // Cộng dồn số xu màn này vào tổng số
             data.totalCoins = totalCoinsStored + coinCount;
             data.highScore = highScore;
-            
+
             // Lưu lại số Tim và Khiên hiện còn (sau khi lượm hoặc dùng)
             data.storedHearts = heartCount;
             data.storedShields = shieldCount;
