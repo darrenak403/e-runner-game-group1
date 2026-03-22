@@ -21,26 +21,49 @@ public class ItemSpawner : MonoBehaviour
 
     [Header("Cài đặt spawn")]
     public Transform player;
-    public float spawnInterval  = 2f;   // giây / lần thử spawn
-    public float spawnDistanceZ = 30f;
+    public float spawnInterval  = 4f;   // giây / lần thử spawn
+    public float spawnDistanceZ = 40f;  // spawn xa hơn để player có thời gian nhặt
     public float laneDistance   = 3.5f;
     public float spawnYOffset   = 0.8f;
 
     [Header("Coin")]
     public int   coinCount   = 5;
     public float coinSpacing = 3.0f;
-    public float minBatchGap = 6.0f;
+    public float minBatchGap = 25f;     // khoảng cách tối thiểu giữa các batch
+
+    [Header("Difficulty Reference")]
+    public SwipeController playerController;
 
     // ─── Private ──────────────────────────────────────────────────────────────
     private float timer;
     private float lastCoinBatchEndZ = float.MinValue;
 
     // ─── Update ───────────────────────────────────────────────────────────────
+    void Start()
+    {
+        if (playerController == null)
+            playerController = FindFirstObjectByType<SwipeController>();
+    }
+
+    private float GetCurrentSpawnInterval()
+    {
+        if (playerController == null) return spawnInterval;
+        return playerController.currentDifficulty switch
+        {
+            SwipeController.GameDifficulty.Normal   => spawnInterval * 0.85f,
+            SwipeController.GameDifficulty.Hard     => spawnInterval * 0.70f,
+            SwipeController.GameDifficulty.VeryHard => spawnInterval * 0.55f,
+            SwipeController.GameDifficulty.Extreme   => spawnInterval * 0.40f,
+            SwipeController.GameDifficulty.Nightmare => spawnInterval * 0.25f,
+            _                                        => spawnInterval
+        };
+    }
+
     void Update()
     {
         if (player == null) return;
         timer += Time.deltaTime;
-        if (timer >= spawnInterval)
+        if (timer >= GetCurrentSpawnInterval())
         {
             TrySpawn();
             timer = 0f;
@@ -64,7 +87,7 @@ public class ItemSpawner : MonoBehaviour
         else
         {
             Vector3 pos = new(spawnX, spawnYOffset, player.position.z + spawnDistanceZ);
-            Destroy(Instantiate(prefab, pos, Quaternion.identity), 15f);
+            Destroy(Instantiate(prefab, pos, Quaternion.identity), 20f);
         }
     }
 
@@ -78,7 +101,7 @@ public class ItemSpawner : MonoBehaviour
         for (int i = 0; i < coinCount; i++)
         {
             Vector3 pos = new(spawnX, spawnYOffset, startZ + i * coinSpacing);
-            Destroy(Instantiate(coinPrefab, pos, Quaternion.identity), 30f);
+            Destroy(Instantiate(coinPrefab, pos, Quaternion.identity), 60f);
         }
 
         lastCoinBatchEndZ = startZ + (coinCount - 1) * coinSpacing;

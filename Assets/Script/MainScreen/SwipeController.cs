@@ -18,7 +18,7 @@ public class SwipeController : MonoBehaviour
     public CapsuleCollider bodyCollider;
     public BoxCollider footCollider;
 
-    public enum GameDifficulty { Easy, Normal, Hard }
+    public enum GameDifficulty { Easy, Normal, Hard, VeryHard, Extreme, Nightmare }
 
     [Header("Difficulty & Speed Settings")]
     public GameDifficulty currentDifficulty = GameDifficulty.Easy;
@@ -198,12 +198,21 @@ public class SwipeController : MonoBehaviour
 
     private void HandleDifficultyProgression()
     {
-        if (currentDifficulty == GameDifficulty.Hard) return;
+        if (currentDifficulty == GameDifficulty.Nightmare) return;
         difficultyTimer += Time.deltaTime;
         if (difficultyTimer >= timeToUpgradeDifficulty)
         {
             difficultyTimer = 0f;
-            SetDifficulty(currentDifficulty == GameDifficulty.Easy ? GameDifficulty.Normal : GameDifficulty.Hard);
+            GameDifficulty next = currentDifficulty switch
+            {
+                GameDifficulty.Easy     => GameDifficulty.Normal,
+                GameDifficulty.Normal   => GameDifficulty.Hard,
+                GameDifficulty.Hard     => GameDifficulty.VeryHard,
+                GameDifficulty.VeryHard => GameDifficulty.Extreme,
+                GameDifficulty.Extreme  => GameDifficulty.Nightmare,
+                _                       => GameDifficulty.Nightmare
+            };
+            SetDifficulty(next);
         }
     }
 
@@ -231,6 +240,21 @@ public class SwipeController : MonoBehaviour
                 targetForwardSpeed = 9f;
                 maxAnimSpeed = 2.5f;
                 speedIncreaseRate = 0.015f;
+                break;
+            case GameDifficulty.VeryHard:
+                targetForwardSpeed = 11f;
+                maxAnimSpeed = 3.0f;
+                speedIncreaseRate = 0.02f;
+                break;
+            case GameDifficulty.Extreme:
+                targetForwardSpeed = 13f;
+                maxAnimSpeed = 3.5f;
+                speedIncreaseRate = 0.025f;
+                break;
+            case GameDifficulty.Nightmare:
+                targetForwardSpeed = 16f;
+                maxAnimSpeed = 4.5f;
+                speedIncreaseRate = 0.035f;
                 break;
         }
     }

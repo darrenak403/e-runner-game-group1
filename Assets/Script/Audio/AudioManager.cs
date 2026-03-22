@@ -6,7 +6,7 @@ public class AudioManager : MonoBehaviour
 {
     public static AudioManager Instance;
 
-    [Header("Danh sách nhạc nền")]
+    [Header("Danh sách nhạc nền Menu")]
     public AudioClip[] menuMusics;
 
     private AudioSource musicSource;
@@ -37,7 +37,7 @@ public class AudioManager : MonoBehaviour
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        // Nếu vào màn chơi game thì tắt nhạc Menu
+        // Nếu vào màn chơi game thì tắt nhạc Menu (BGMManager sẽ lo nhạc game)
         if (scene.name == "MainScreen")
         {
             StopMusic();
@@ -79,9 +79,9 @@ public class AudioManager : MonoBehaviour
 
         int randomIndex = Random.Range(0, menuMusics.Length);
         musicSource.clip = menuMusics[randomIndex];
-        musicSource.volume = 0.5f; // Bạn có thể chỉnh âm lượng ở đây
+        musicSource.volume = 0.5f;
         musicSource.Play();
-        Debug.Log("AudioManager: Đang phát bài: " + musicSource.clip.name);
+        Debug.Log("AudioManager: Đang phát nhạc menu: " + musicSource.clip.name);
     }
 
     public void StopMusic()

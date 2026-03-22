@@ -177,10 +177,10 @@ public class GameOverController : MonoBehaviour
             Time.timeScale = 1f;
             if (gameOverPanel != null) gameOverPanel.SetActive(false);
 
-            // Bật lại nhạc nền sau khi hồi sinh (Lỗi 1)
-            if (AudioManager.Instance != null)
+            // Bật lại nhạc game sau khi hồi sinh
+            if (BGMManager.Instance != null)
             {
-                AudioManager.Instance.PlayRandomMusic();
+                BGMManager.Instance.PlayMusic();
             }
 
             // Gọi Player bắt đầu trạng thái "Bóng ma" đi xuyên vật cản

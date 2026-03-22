@@ -36,11 +36,17 @@ public class LevelGenerator : MonoBehaviour
     public float ob1_MiddleX = -1.3f;
     public float ob1_RightX = 2f;
 
+    [Header("Difficulty Reference")]
+    public SwipeController playerController;
+
     private float spawnZ = 0f;
     private List<GameObject> activeTiles = new List<GameObject>();
 
     void Start()
     {
+        if (playerController == null)
+            playerController = FindFirstObjectByType<SwipeController>();
+
         spawnZ = -(tileLength / 2f);
         for (int i = 0; i < numberOfTiles; i++)
         {
@@ -76,11 +82,26 @@ public class LevelGenerator : MonoBehaviour
         spawnZ += tileLength;
     }
 
+    private int GetObstacleCount()
+    {
+        if (playerController == null) return obstaclesPerTile;
+        return playerController.currentDifficulty switch
+        {
+            SwipeController.GameDifficulty.Normal   => obstaclesPerTile + 1,
+            SwipeController.GameDifficulty.Hard     => obstaclesPerTile + 2,
+            SwipeController.GameDifficulty.VeryHard => obstaclesPerTile + 4,
+            SwipeController.GameDifficulty.Extreme   => obstaclesPerTile + 6,
+            SwipeController.GameDifficulty.Nightmare => obstaclesPerTile + 9,
+            _                                        => obstaclesPerTile
+        };
+    }
+
     void GenerateObstaclesOnTile(Transform parentTile, float zStart)
     {
-        float segmentLength = tileLength / obstaclesPerTile;
+        int count = GetObstacleCount();
+        float segmentLength = tileLength / count;
 
-        for (int i = 0; i < obstaclesPerTile; i++)
+        for (int i = 0; i < count; i++)
         {
             int randomLane = Random.Range(-1, 2);
             float randomX = randomLane * laneWidth;

@@ -1734,19 +1734,19 @@ MonoBehaviour:
   items:
   - itemName: 
     prefab: {fileID: 6954758372675618198, guid: 6a301d09debaf1e4a8d3e2657cc44a96, type: 3}
-    spawnChance: 70
+    spawnChance: 55
   - itemName: 
     prefab: {fileID: 8398601021662225049, guid: 8ee5e1b1ba562e140813f7eaa8f096cc, type: 3}
-    spawnChance: 10
+    spawnChance: 5
   - itemName: 
     prefab: {fileID: 5225455176718880169, guid: 78f7059459c19f345910342079d533e8, type: 3}
-    spawnChance: 8
-  - itemName: 
-    prefab: {fileID: 621584630249350254, guid: 30c11cbab2272ad469bc5d089d75fa1a, type: 3}
     spawnChance: 4
   - itemName: 
+    prefab: {fileID: 621584630249350254, guid: 30c11cbab2272ad469bc5d089d75fa1a, type: 3}
+    spawnChance: 2
+  - itemName: 
     prefab: {fileID: 8475833574052523601, guid: 45ef2b50b6b187a4b9c4b463fd68d55e, type: 3}
-    spawnChance: 8
+    spawnChance: 4
   player: {fileID: 1683418523}
   spawnInterval: 1
   spawnDistanceZ: 30
@@ -1755,6 +1755,7 @@ MonoBehaviour:
   coinCount: 5
   coinSpacing: 3
   minBatchGap: 6
+  playerController: {fileID: 0}
 --- !u!1 &832575517
 GameObject:
   m_ObjectHideFlags: 0
@@ -3193,7 +3194,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ca099c573a147724987606f99198d4cb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AudioManager
-  menuMusics: []
+  menuMusics:
+  - {fileID: 8300000, guid: 3fc26869a512b4e5187c9be6310ad8c2, type: 3}
 --- !u!82 &1508168693
 AudioSource:
   m_ObjectHideFlags: 0
@@ -3374,6 +3376,7 @@ MonoBehaviour:
   ob1_LeftX: -4.6
   ob1_MiddleX: -1.3
   ob1_RightX: 2
+  playerController: {fileID: 0}
 --- !u!4 &1511163976
 Transform:
   m_ObjectHideFlags: 0
@@ -3724,7 +3727,7 @@ MonoBehaviour:
   thunderVolume: 0.506
   gameOverSound: {fileID: 8300000, guid: e4b715922c21f71429165b60e8b940f3, type: 3}
   gameOverVolume: 1
-  jumpDuration: 0.95
+  jumpDuration: 0.9
   jumpHeight: 1
   slideDuration: 1.533
   slideHeightRatio: 0.3
