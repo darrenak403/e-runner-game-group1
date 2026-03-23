@@ -574,6 +574,12 @@ public class SwipeController : MonoBehaviour
     // --- LOGIC HỒI SINH (Gọi từ GameOverController) ---
     public void StartReviveProcess()
     {
+        // Reset hiệu ứng potion về 0 (giữ nguyên coin)
+        potionTimer = 0f;
+        jumpHeight = defaultJumpHeight;
+        if (GameOverController.Instance != null)
+            GameOverController.Instance.UpdatePotionUI(0f);
+
         // Reset trạng thái vật lý
         if (rb != null)
         {

@@ -9,12 +9,14 @@ public class MainStatsController : MonoBehaviour
     public TextMeshProUGUI totalCoinsText;
     public TextMeshProUGUI highScoreText;
     public TextMeshProUGUI statusText;
+    public TextMeshProUGUI heartAvailable;
+    public TextMeshProUGUI shieldAvailable;
 
     [Header("Persistence")]
     private string savePath;
 
     private Coroutine statusCoroutine;
-    
+
     [System.Serializable]
     public class GameData
     {
@@ -65,6 +67,8 @@ public class MainStatsController : MonoBehaviour
     {
         if (totalCoinsText != null) totalCoinsText.text = currentData.totalCoins.ToString();
         if (highScoreText != null) highScoreText.text = currentData.highScore.ToString() + "m";
+        if (heartAvailable != null) heartAvailable.text = "Hiện có: " + currentData.storedHearts.ToString();
+        if (shieldAvailable != null) shieldAvailable.text = "Hiện có: " + currentData.storedShields.ToString();
     }
 
     private void SaveData()
@@ -86,7 +90,7 @@ public class MainStatsController : MonoBehaviour
         if (statusText == null) return;
 
         if (statusCoroutine != null) StopCoroutine(statusCoroutine);
-        
+
         statusText.text = message;
         statusText.color = color;
         statusCoroutine = StartCoroutine(ClearStatusAfterDelay(2f));

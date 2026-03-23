@@ -70,10 +70,23 @@ public class GameOverController : MonoBehaviour
         if (gameOverPanel != null) gameOverPanel.SetActive(false);
         if (potionRow != null) potionRow.SetActive(false);
 
-        // Gán sự kiện cho 2 nút
-        if (respawnButton != null) respawnButton.onClick.AddListener(ReviveGame);
-        if (restartButton != null) restartButton.onClick.AddListener(RestartGame);
-        if (exitButton != null) exitButton.onClick.AddListener(SaveAndExit);
+        // Tạo mới hoàn toàn event để xóa CẢ persistent listeners (Inspector) lẫn runtime listeners
+        // RemoveAllListeners() chỉ xóa runtime listeners, không xóa persistent listeners từ Inspector
+        if (respawnButton != null)
+        {
+            respawnButton.onClick = new Button.ButtonClickedEvent();
+            respawnButton.onClick.AddListener(ReviveGame);
+        }
+        if (restartButton != null)
+        {
+            restartButton.onClick = new Button.ButtonClickedEvent();
+            restartButton.onClick.AddListener(RestartGame);
+        }
+        if (exitButton != null)
+        {
+            exitButton.onClick = new Button.ButtonClickedEvent();
+            exitButton.onClick.AddListener(SaveAndExit);
+        }
 
         UpdateAllUI();
     }
