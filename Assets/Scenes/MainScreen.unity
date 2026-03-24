@@ -1708,7 +1708,7 @@ MonoBehaviour:
   gameOverPanel: {fileID: 382953279}
   respawnButton: {fileID: 485477374}
   restartButton: {fileID: 1261975807}
-  exitButton: {fileID: 0}
+  exitButton: {fileID: 230124508}
   scoreText: {fileID: 1262060418}
   timerText: {fileID: 1328578921}
   heartText: {fileID: 1011930768}
